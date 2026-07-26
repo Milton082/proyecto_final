@@ -35,3 +35,26 @@ out/
 
 ### VS Code ###
 .vscode/
+
+.gradle/
+build/
+bin/
+out/
+
+*.class
+*.jar
+*.log
+
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+.env
+.env.dev
+.env.prod
+
+.DS_Store
+Thumbs.db

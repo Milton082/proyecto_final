@@ -1,4 +1,4 @@
-package ec.edu.ups.academic_events_api.controller;
+package ec.edu.ups.academic_events_api.core.controller;
 
 import java.time.LocalDateTime;
 import java.util.Map;
