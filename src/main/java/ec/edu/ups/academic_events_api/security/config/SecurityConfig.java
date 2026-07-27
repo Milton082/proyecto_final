@@ -9,19 +9,28 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
         @Bean
-        SecurityFilterChain securityFilterChain(
+        public SecurityFilterChain securityFilterChain(
                         HttpSecurity http) throws Exception {
 
                 return http
+                                // Necesario temporalmente para POST, PUT y PATCH desde Bruno
                                 .csrf(csrf -> csrf.disable())
+
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/actuator/health",
+                                                                "/status",
                                                                 "/swagger-ui/**",
                                                                 "/v3/api-docs/**",
-                                                                "/status/**")
+                                                                "/users/**",
+                                                                "/roles/**")
                                                 .permitAll()
+
                                                 .anyRequest().authenticated())
+
+                                .formLogin(form -> form.disable())
+                                .httpBasic(basic -> basic.disable())
+
                                 .build();
         }
 }
