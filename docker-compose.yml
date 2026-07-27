@@ -14,8 +14,8 @@ services:
       - "5433:5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql:/sql
+      - academic_events_postgres_data:/var/lib/postgresql/data
+      - ./src/main/sql:/sql
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ups -d postgres"]
@@ -37,7 +37,7 @@ services:
       - "yes"
 
     volumes:
-      - redis_data:/data
+      - academic_events_redis_data:/data
 
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -46,5 +46,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
-  redis_data:
+  academic_events_postgres_data:
+  academic_events_redis_data:
