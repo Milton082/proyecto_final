@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import ec.edu.ups.academic_events_api.security.dtos.AuthResponseDto;
+import ec.edu.ups.academic_events_api.security.dtos.LoginRequestDto;
 import ec.edu.ups.academic_events_api.security.dtos.RegisterRequestDto;
 import ec.edu.ups.academic_events_api.security.dtos.RegisterResponseDto;
 import ec.edu.ups.academic_events_api.security.services.AuthService;
@@ -28,5 +30,11 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(authService.register(dto));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponseDto> login(
+            @Valid @RequestBody LoginRequestDto dto) {
+        return ResponseEntity.ok(authService.login(dto));
     }
 }
