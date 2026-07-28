@@ -69,8 +69,6 @@ public class EventServiceImpl implements EventService {
         UserEntity organizer = findOrganizerById(dto.getOrganizerId());
 
         EventEntity event = EventMapper.toEntity(dto);
-
-        event.setTitle(dto.getTitle().trim());
         event.setCategory(category);
         event.setOrganizer(organizer);
 
@@ -82,11 +80,8 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventResponseDto update(Long id, UpdateEventDto dto) {
         EventEntity event = findEventById(id);
-
         validateDates(dto.getStartDate(), dto.getEndDate());
-
         String newTitle = dto.getTitle().trim();
-
         boolean titleChanged = !event.getTitle()
                 .equalsIgnoreCase(newTitle);
 
@@ -100,13 +95,10 @@ public class EventServiceImpl implements EventService {
 
         CategoryEntity category = findCategoryById(dto.getCategoryId());
         UserEntity organizer = findOrganizerById(dto.getOrganizerId());
-
         EventMapper.updateEntity(event, dto);
-
         event.setTitle(newTitle);
         event.setCategory(category);
         event.setOrganizer(organizer);
-
         EventEntity updatedEvent = eventRepository.save(event);
 
         return EventMapper.toResponseDto(updatedEvent);
@@ -115,7 +107,6 @@ public class EventServiceImpl implements EventService {
     @Override
     public void delete(Long id) {
         EventEntity event = findEventById(id);
-
         event.setDeleted(true);
         eventRepository.save(event);
     }
