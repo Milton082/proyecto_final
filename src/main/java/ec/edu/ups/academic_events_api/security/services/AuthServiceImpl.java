@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import ec.edu.ups.academic_events_api.core.exceptions.domain.ConflictException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.NotFoundException;
 import ec.edu.ups.academic_events_api.security.config.JwtProperties;
 import ec.edu.ups.academic_events_api.security.dtos.AuthResponseDto;
+import ec.edu.ups.academic_events_api.security.dtos.CurrentUserResponseDto;
 import ec.edu.ups.academic_events_api.security.dtos.LoginRequestDto;
 import ec.edu.ups.academic_events_api.security.dtos.RegisterRequestDto;
 import ec.edu.ups.academic_events_api.security.dtos.RegisterResponseDto;
@@ -120,6 +122,41 @@ public class AuthServiceImpl implements AuthService {
                                 jwtProperties.accessExpiration(),
                                 principal.getId(),
                                 principal.getUsername(),
+                                roles);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public CurrentUserResponseDto currentUser() {
+
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
+
+                if (authentication == null
+                                || !(authentication.getPrincipal() instanceof UserDetailsImpl principal)) {
+
+                        throw new IllegalStateException(
+                                        "No existe un usuario autenticado");
+                }
+
+                UserEntity user = userRepository
+                                .findById(principal.getId())
+                                .orElseThrow(() -> new NotFoundException(
+                                                "El usuario autenticado no existe"));
+
+                Set<RoleName> roles = user.getRoles()
+                                .stream()
+                                .map(RoleEntity::getName)
+                                .collect(Collectors.toCollection(
+                                                LinkedHashSet::new));
+
+                return new CurrentUserResponseDto(
+                                user.getId(),
+                                user.getFirstName(),
+                                user.getLastName(),
+                                user.getEmail(),
+                                user.getStatus(),
                                 roles);
         }
 }

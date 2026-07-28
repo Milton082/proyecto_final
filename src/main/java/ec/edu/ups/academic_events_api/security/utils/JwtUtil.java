@@ -9,11 +9,11 @@ import javax.crypto.SecretKey;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import ec.edu.ups.academic_events_api.security.config.JwtProperties;
 import ec.edu.ups.academic_events_api.security.services.UserDetailsImpl;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
@@ -26,24 +26,15 @@ public class JwtUtil {
     public JwtUtil(JwtProperties properties) {
         this.properties = properties;
 
-        if (!StringUtils.hasText(properties.secret())) {
-            throw new IllegalStateException(
-                    "La propiedad jwt.secret es obligatoria");
-        }
-
-        byte[] secretBytes = properties.secret()
-                .getBytes(StandardCharsets.UTF_8);
-
-        if (secretBytes.length < 32) {
-            throw new IllegalStateException(
-                    "La propiedad jwt.secret debe tener al menos 32 bytes");
-        }
-
-        this.signingKey = Keys.hmacShaKeyFor(secretBytes);
+        this.signingKey = Keys.hmacShaKeyFor(
+                properties.secret()
+                        .getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(UserDetailsImpl user) {
+    public String generateAccessToken(
+            UserDetailsImpl user) {
         Instant now = Instant.now();
+
         Instant expiration = now.plusMillis(
                 properties.accessExpiration());
 
@@ -73,13 +64,20 @@ public class JwtUtil {
     public boolean isValid(
             String token,
             UserDetailsImpl user) {
-        String email = extractEmail(token);
+        try {
+            String email = extractEmail(token);
 
-        return email.equalsIgnoreCase(user.getUsername())
-                && extractExpiration(token).after(new Date());
+            return email.equalsIgnoreCase(user.getUsername())
+                    && extractExpiration(token)
+                            .after(new Date())
+                    && user.isEnabled();
+
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
     }
 
-    private Claims extractClaims(String token) {
+    public Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
                 .build()

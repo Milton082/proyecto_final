@@ -37,14 +37,14 @@ public class UsersController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> findById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
         return ResponseEntity.ok(
                 userService.findById(id));
     }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<UserResponseDto> updateStatus(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody UpdateUserStatusDto dto) {
         return ResponseEntity.ok(
                 userService.updateStatus(id, dto));
@@ -52,7 +52,7 @@ public class UsersController {
 
     @PutMapping("/{id}/roles")
     public ResponseEntity<UserResponseDto> updateRoles(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @Valid @RequestBody UpdateUserRolesDto dto) {
         return ResponseEntity.ok(
                 userService.updateRoles(id, dto));
