@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record UpdateUserRolesDto(
 
-                @NotNull(message = "Los roles son obligatorios") @NotEmpty(message = "Debe asignar al menos un rol") Set<RoleName> roles
+        @NotNull(message = "Los roles son obligatorios") @NotEmpty(message = "Debe asignar al menos un rol") Set<RoleName> roles
 
 ) {
 }

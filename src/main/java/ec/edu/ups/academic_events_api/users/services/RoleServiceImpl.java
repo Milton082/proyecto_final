@@ -6,9 +6,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ec.edu.ups.academic_events_api.users.repositories.RoleRepository;
 import ec.edu.ups.academic_events_api.users.dtos.RoleResponseDto;
 import ec.edu.ups.academic_events_api.users.mappers.RoleMapper;
-import ec.edu.ups.academic_events_api.users.repositories.RoleRepository;
 
 @Service
 @Transactional(readOnly = true)
