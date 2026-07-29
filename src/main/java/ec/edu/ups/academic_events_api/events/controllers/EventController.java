@@ -1,4 +1,4 @@
-package ec.edu.ups.academic_events_api.events.Controllers;
+package ec.edu.ups.academic_events_api.events.controllers;
 
 import java.util.List;
 
