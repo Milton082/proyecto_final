@@ -1,26 +1,31 @@
 package ec.edu.ups.academic_events_api.reports.controllers;
 
-import ec.edu.ups.academic_events_api.reports.dtos.StatisticsResponseDto;
-import ec.edu.ups.academic_events_api.reports.services.ReportService;
-
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ec.edu.ups.academic_events_api.reports.dtos.StatisticsResponseDto;
+import ec.edu.ups.academic_events_api.reports.services.ReportService;
 import ec.edu.ups.academic_events_api.security.services.UserDetailsImpl;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import java.time.OffsetDateTime;
-import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/reports")
 public class ReportController {
+
+    private static final MediaType EXCEL_MEDIA_TYPE =
+            MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument."
+                            + "spreadsheetml.sheet"
+            );
 
     private final ReportService reportService;
 
@@ -57,11 +62,14 @@ public class ReportController {
             produces = MediaType.APPLICATION_PDF_VALUE
     )
     public ResponseEntity<byte[]> downloadRegistrationsPdf(
-            @PathVariable Long eventId
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
     ) {
         byte[] pdf =
                 reportService.generateRegistrationsPdf(
-                        eventId
+                        eventId,
+                        currentUser.getId(),
+                        isAdmin(currentUser)
                 );
 
         String fileName =
@@ -86,82 +94,96 @@ public class ReportController {
                 .body(pdf);
     }
 
-    private static final MediaType EXCEL_MEDIA_TYPE =
-        MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument."
-                        + "spreadsheetml.sheet"
-        );
-
     @GetMapping(
-        value = "/events/{eventId}/registrations/excel",
-        produces = "application/vnd.openxmlformats-officedocument."
-                + "spreadsheetml.sheet"
-)
-public ResponseEntity<byte[]> downloadRegistrationsExcel(
-        @PathVariable Long eventId
-) {
-    byte[] excel =
-            reportService.generateRegistrationsExcel(
-                    eventId
-            );
+            value = "/events/{eventId}/registrations/excel",
+            produces =
+                    "application/vnd.openxmlformats-officedocument."
+                            + "spreadsheetml.sheet"
+    )
+    public ResponseEntity<byte[]> downloadRegistrationsExcel(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        byte[] excel =
+                reportService.generateRegistrationsExcel(
+                        eventId,
+                        currentUser.getId(),
+                        isAdmin(currentUser)
+                );
 
-    String fileName =
-            "inscritos-evento-" + eventId + ".xlsx";
+        String fileName =
+                "inscritos-evento-" + eventId + ".xlsx";
 
-    ContentDisposition contentDisposition =
-            ContentDisposition
-                    .attachment()
-                    .filename(
-                            fileName,
-                            StandardCharsets.UTF_8
-                    )
-                    .build();
+        ContentDisposition contentDisposition =
+                ContentDisposition
+                        .attachment()
+                        .filename(
+                                fileName,
+                                StandardCharsets.UTF_8
+                        )
+                        .build();
 
-    return ResponseEntity.ok()
-            .contentType(EXCEL_MEDIA_TYPE)
-            .header(
-                    HttpHeaders.CONTENT_DISPOSITION,
-                    contentDisposition.toString()
-            )
-            .contentLength(excel.length)
-            .body(excel);
+        return ResponseEntity.ok()
+                .contentType(EXCEL_MEDIA_TYPE)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        contentDisposition.toString()
+                )
+                .contentLength(excel.length)
+                .body(excel);
     }
 
     @GetMapping(
-        value = "/registrations/{registrationId}/certificate",
-        produces = MediaType.APPLICATION_PDF_VALUE
-)
-public ResponseEntity<byte[]> downloadCertificate(
-        @PathVariable Long registrationId,
-        @AuthenticationPrincipal UserDetailsImpl currentUser
-) {
-    byte[] certificate =
-            reportService.generateCertificatePdf(
-                    registrationId,
-                    currentUser.getId()
-            );
+            value = "/registrations/{registrationId}/certificate",
+            produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    public ResponseEntity<byte[]> downloadCertificate(
+            @PathVariable Long registrationId,
+            @AuthenticationPrincipal UserDetailsImpl currentUser
+    ) {
+        byte[] certificate =
+                reportService.generateCertificatePdf(
+                        registrationId,
+                        currentUser.getId()
+                );
 
-    String fileName =
-            "certificado-inscripcion-"
-                    + registrationId
-                    + ".pdf";
+        String fileName =
+                "certificado-inscripcion-"
+                        + registrationId
+                        + ".pdf";
 
-    ContentDisposition contentDisposition =
-            ContentDisposition
-                    .attachment()
-                    .filename(
-                            fileName,
-                            StandardCharsets.UTF_8
-                    )
-                    .build();
+        ContentDisposition contentDisposition =
+                ContentDisposition
+                        .attachment()
+                        .filename(
+                                fileName,
+                                StandardCharsets.UTF_8
+                        )
+                        .build();
 
-    return ResponseEntity.ok()
-            .contentType(MediaType.APPLICATION_PDF)
-            .header(
-                    HttpHeaders.CONTENT_DISPOSITION,
-                    contentDisposition.toString()
-            )
-            .contentLength(certificate.length)
-            .body(certificate);
-}
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        contentDisposition.toString()
+                )
+                .contentLength(certificate.length)
+                .body(certificate);
+    }
+
+    private boolean isAdmin(
+            UserDetailsImpl currentUser
+    ) {
+        if (currentUser == null) {
+            return false;
+        }
+
+        return currentUser.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        "ROLE_ADMIN".equals(
+                                authority.getAuthority()
+                        )
+                );
+    }
 }

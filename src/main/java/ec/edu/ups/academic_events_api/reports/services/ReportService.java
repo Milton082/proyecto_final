@@ -7,15 +7,23 @@ public interface ReportService {
 
     StatisticsResponseDto getStatistics(
             OffsetDateTime startDate,
-            OffsetDateTime endDate);
+            OffsetDateTime endDate
+    );
 
     byte[] generateRegistrationsPdf(
-            Long eventId);
+            Long eventId,
+            Long authenticatedUserId,
+            boolean admin
+    );
 
     byte[] generateRegistrationsExcel(
-            Long eventId);
+            Long eventId,
+            Long authenticatedUserId,
+            boolean admin
+    );
 
     byte[] generateCertificatePdf(
             Long registrationId,
-            Long authenticatedUserId);
+            Long authenticatedUserId
+    );
 }
