@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import ec.edu.ups.academic_events_api.security.services.UserDetailsImpl;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.time.OffsetDateTime;
 import java.nio.charset.StandardCharsets;
 
@@ -125,4 +126,42 @@ public ResponseEntity<byte[]> downloadRegistrationsExcel(
             .contentLength(excel.length)
             .body(excel);
     }
+
+    @GetMapping(
+        value = "/registrations/{registrationId}/certificate",
+        produces = MediaType.APPLICATION_PDF_VALUE
+)
+public ResponseEntity<byte[]> downloadCertificate(
+        @PathVariable Long registrationId,
+        @AuthenticationPrincipal UserDetailsImpl currentUser
+) {
+    byte[] certificate =
+            reportService.generateCertificatePdf(
+                    registrationId,
+                    currentUser.getId()
+            );
+
+    String fileName =
+            "certificado-inscripcion-"
+                    + registrationId
+                    + ".pdf";
+
+    ContentDisposition contentDisposition =
+            ContentDisposition
+                    .attachment()
+                    .filename(
+                            fileName,
+                            StandardCharsets.UTF_8
+                    )
+                    .build();
+
+    return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    contentDisposition.toString()
+            )
+            .contentLength(certificate.length)
+            .body(certificate);
+}
 }

@@ -12,6 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.OffsetDateTime;
+import ec.edu.ups.academic_events_api.core.exceptions.domain.BadRequestException;
+import ec.edu.ups.academic_events_api.core.exceptions.domain.ForbiddenException;
+import ec.edu.ups.academic_events_api.core.exceptions.domain.NotFoundException;
+import ec.edu.ups.academic_events_api.reports.utils.CertificatePdfGenerator;
 import java.util.List;
 
 @Service
@@ -27,16 +31,19 @@ public class ReportServiceImpl implements ReportService {
     private final RegistrationRepository registrationRepository;
     private final PdfGenerator pdfGenerator;
     private final ExcelGenerator excelGenerator;
+    private final CertificatePdfGenerator certificatePdfGenerator;
 
     public ReportServiceImpl(
             EventRepository eventRepository,
             RegistrationRepository registrationRepository,
             PdfGenerator pdfGenerator,
-            ExcelGenerator excelGenerator) {
+            ExcelGenerator excelGenerator,
+            CertificatePdfGenerator certificatePdfGenerator) {
         this.eventRepository = eventRepository;
         this.registrationRepository = registrationRepository;
         this.pdfGenerator = pdfGenerator;
         this.excelGenerator = excelGenerator;
+        this.certificatePdfGenerator = certificatePdfGenerator;
     }
 
     @Override
@@ -81,6 +88,63 @@ public class ReportServiceImpl implements ReportService {
                 registrations);
     }
 
+    @Override
+    public byte[] generateRegistrationsExcel(
+            Long eventId) {
+        EventEntity event = eventRepository
+                .findByIdAndDeletedFalse(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró el evento con id "
+                                + eventId));
+
+        List<RegistrationEntity> registrations = registrationRepository
+                .findByEventIdOrderByRegisteredAtAsc(
+                        eventId);
+
+        return excelGenerator.generateRegistrationsReport(
+                event,
+                registrations);
+    }
+
+    @Override
+    public byte[] generateCertificatePdf(
+            Long registrationId,
+            Long authenticatedUserId) {
+        if (authenticatedUserId == null) {
+            throw new ForbiddenException(
+                    "No se pudo identificar al usuario autenticado");
+        }
+
+        RegistrationEntity registration = registrationRepository
+                .findByIdWithParticipantAndEvent(
+                        registrationId)
+                .orElseThrow(() -> new NotFoundException(
+                        "REGISTRATION_NOT_FOUND",
+                        "No se encontró la inscripción con id "
+                                + registrationId));
+
+        Long participantId = registration.getParticipant().getId();
+
+        if (!participantId.equals(authenticatedUserId)) {
+            throw new ForbiddenException(
+                    "CERTIFICATE_ACCESS_DENIED",
+                    "Solo el participante propietario puede "
+                            + "descargar este certificado");
+        }
+
+        if (!STATUS_CONFIRMED.equalsIgnoreCase(
+                registration.getStatus())) {
+            throw new BadRequestException(
+                    "REGISTRATION_NOT_CONFIRMED",
+                    "El certificado solo puede generarse para "
+                            + "inscripciones confirmadas");
+        }
+
+        return certificatePdfGenerator.generateCertificate(
+                registration);
+    }
+
     private void loadGeneralStatistics(
             StatisticsResponseDto response) {
         response.setTotalRegistrations(
@@ -101,25 +165,6 @@ public class ReportServiceImpl implements ReportService {
         response.setRejectedRegistrations(
                 registrationRepository.countByStatus(
                         STATUS_REJECTED));
-    }
-
-    @Override
-    public byte[] generateRegistrationsExcel(
-            Long eventId) {
-        EventEntity event = eventRepository
-                .findByIdAndDeletedFalse(eventId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No se encontró el evento con id "
-                                + eventId));
-
-        List<RegistrationEntity> registrations = registrationRepository
-                .findByEventIdOrderByRegisteredAtAsc(
-                        eventId);
-
-        return excelGenerator.generateRegistrationsReport(
-                event,
-                registrations);
     }
 
     private void loadStatisticsByDateRange(
