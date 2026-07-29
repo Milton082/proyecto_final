@@ -71,7 +71,8 @@ public class AuthServiceImpl implements AuthService {
 
                 if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
                         throw new ConflictException(
-                                        "Ya existe un usuario con el correo ingresado");
+                                        "Account_Already_Exists",
+                                        "No fue posible completar el registro con los datos ingresados");
                 }
 
                 RoleEntity participantRole = roleRepository

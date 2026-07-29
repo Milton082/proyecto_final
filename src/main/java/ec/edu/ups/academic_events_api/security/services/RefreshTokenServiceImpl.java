@@ -74,13 +74,15 @@ public class RefreshTokenServiceImpl
 
                 if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
                         throw new BadRequestException(
-                                        "El refresh token fue revocado");
+                                        "REFRESH_TOKEN_REVOKED",
+                                        "El refresh token es inválido o ya no está disponible");
                 }
 
                 RefreshTokenEntity entity = refreshTokenRepository
                                 .findByTokenId(tokenId)
                                 .orElseThrow(() -> new BadRequestException(
-                                                "Refresh token inválido"));
+                                                "INVALID_REFRESH_TOKEN",
+                                                "El refresh token es inválido o ya no está disponible"));
 
                 if (!MessageDigest.isEqual(
                                 entity.getTokenHash()
@@ -88,17 +90,20 @@ public class RefreshTokenServiceImpl
                                 hash(rawToken)
                                                 .getBytes(StandardCharsets.UTF_8))) {
                         throw new BadRequestException(
-                                        "Refresh token inválido");
+                                        "INVALID_REFRESH_TOKEN",
+                                        "El refresh token es inválido o ya no está disponible");
                 }
 
                 if (entity.isRevoked()) {
                         throw new BadRequestException(
-                                        "El refresh token fue revocado");
+                                        "REFRESH_TOKEN_REVOKED",
+                                        "El refresh token es inválido o ya no está disponible");
                 }
 
                 if (entity.isExpired()) {
                         throw new BadRequestException(
-                                        "El refresh token expiró");
+                                        "REFRESH_TOKEN_EXPIRED",
+                                        "El refresh token es inválido o ya no está disponible");
                 }
 
                 return entity;
