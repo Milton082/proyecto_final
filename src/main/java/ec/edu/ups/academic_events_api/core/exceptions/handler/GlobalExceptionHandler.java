@@ -27,6 +27,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 
 import ec.edu.ups.academic_events_api.core.exceptions.base.ApplicationException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.RateLimitException;
+import ec.edu.ups.academic_events_api.core.exceptions.domain.TooManyRequestsException;
 import ec.edu.ups.academic_events_api.core.exceptions.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -311,5 +312,21 @@ public class GlobalExceptionHandler {
                                 message,
                                 path,
                                 validationErrors);
+        }
+
+        @ExceptionHandler(TooManyRequestsException.class)
+        public ResponseEntity<ErrorResponse> handleTooManyRequests(
+                        TooManyRequestsException exception,
+                        HttpServletRequest request) {
+                ErrorResponse errorResponse = buildResponse(
+                                HttpStatus.TOO_MANY_REQUESTS,
+                                "TOO_MANY_REQUESTS",
+                                exception.getMessage(),
+                                request.getRequestURI(),
+                                null);
+
+                return ResponseEntity
+                                .status(HttpStatus.TOO_MANY_REQUESTS)
+                                .body(errorResponse);
         }
 }

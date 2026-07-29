@@ -5,9 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import ec.edu.ups.academic_events_api.security.config.JwtProperties;
+import ec.edu.ups.academic_events_api.security.config.LoginSecurityProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({ JwtProperties.class, LoginSecurityProperties.class })
 public class AcademicEventsApiApplication {
 
 	public static void main(String[] args) {

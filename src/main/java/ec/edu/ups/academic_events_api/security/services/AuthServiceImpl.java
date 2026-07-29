@@ -12,10 +12,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.AuthenticationException;
 
 import ec.edu.ups.academic_events_api.core.dtos.MessageResponseDto;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.ConflictException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.NotFoundException;
+import ec.edu.ups.academic_events_api.core.exceptions.domain.UnauthorizedException;
 import ec.edu.ups.academic_events_api.security.config.JwtProperties;
 import ec.edu.ups.academic_events_api.security.dtos.AuthResponseDto;
 import ec.edu.ups.academic_events_api.security.dtos.CurrentUserResponseDto;
@@ -43,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
         private final JwtUtil jwtUtil;
         private final JwtProperties jwtProperties;
         private final RefreshTokenService refreshTokenService;
+        private final LoginProtectionService loginProtectionService;
 
         public AuthServiceImpl(
                         UserRepository userRepository,
@@ -51,7 +54,8 @@ public class AuthServiceImpl implements AuthService {
                         AuthenticationManager authenticationManager,
                         JwtUtil jwtUtil,
                         JwtProperties jwtProperties,
-                        RefreshTokenService refreshTokenService) {
+                        RefreshTokenService refreshTokenService,
+                        LoginProtectionService loginProtectionService) {
                 this.userRepository = userRepository;
                 this.roleRepository = roleRepository;
                 this.passwordEncoder = passwordEncoder;
@@ -59,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
                 this.jwtUtil = jwtUtil;
                 this.jwtProperties = jwtProperties;
                 this.refreshTokenService = refreshTokenService;
+                this.loginProtectionService = loginProtectionService;
         }
 
         @Override
@@ -110,17 +115,38 @@ public class AuthServiceImpl implements AuthService {
                                 .trim()
                                 .toLowerCase();
 
-                Authentication authentication = authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(
-                                                normalizedEmail,
-                                                dto.password()));
+                loginProtectionService.validateLoginAllowed(
+                                normalizedEmail,
+                                clientIp);
+
+                Authentication authentication;
+
+                try {
+                        authentication = authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(
+                                                        normalizedEmail,
+                                                        dto.password()));
+
+                } catch (AuthenticationException exception) {
+
+                        loginProtectionService.registerFailure(
+                                        normalizedEmail,
+                                        clientIp);
+
+                        throw new UnauthorizedException(
+                                        "Correo o contraseña incorrectos");
+                }
+
+                loginProtectionService.registerSuccess(
+                                normalizedEmail,
+                                clientIp);
 
                 UserDetailsImpl principal = (UserDetailsImpl) authentication.getPrincipal();
 
                 UserEntity user = userRepository
                                 .findById(principal.getId())
-                                .orElseThrow(() -> new NotFoundException(
-                                                "Usuario autenticado no encontrado"));
+                                .orElseThrow(() -> new UnauthorizedException(
+                                                "Correo o contraseña incorrectos"));
 
                 String accessToken = jwtUtil.generateAccessToken(principal);
 
