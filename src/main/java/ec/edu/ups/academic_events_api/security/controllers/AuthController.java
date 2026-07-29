@@ -2,6 +2,7 @@ package ec.edu.ups.academic_events_api.security.controllers;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,6 +50,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CurrentUserResponseDto> currentUser() {
         return ResponseEntity.ok(
                 authService.currentUser());
@@ -65,6 +67,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MessageResponseDto> logout(
             @Valid @RequestBody LogoutRequestDto dto) {
         return ResponseEntity.ok(
