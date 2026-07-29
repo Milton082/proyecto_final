@@ -4,20 +4,20 @@ import org.springframework.http.HttpStatus;
 
 import ec.edu.ups.academic_events_api.core.exceptions.base.ApplicationException;
 
-public class NotFoundException extends ApplicationException {
+public class ForbiddenException extends ApplicationException {
 
-    public NotFoundException(String message) {
+    public ForbiddenException(String message) {
         super(
-                HttpStatus.NOT_FOUND,
-                "RESOURCE_NOT_FOUND",
+                HttpStatus.FORBIDDEN,
+                "FORBIDDEN",
                 message);
     }
 
-    public NotFoundException(
+    public ForbiddenException(
             String errorCode,
             String message) {
         super(
-                HttpStatus.NOT_FOUND,
+                HttpStatus.FORBIDDEN,
                 errorCode,
                 message);
     }

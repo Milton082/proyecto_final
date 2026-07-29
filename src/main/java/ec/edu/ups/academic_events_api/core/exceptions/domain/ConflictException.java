@@ -4,20 +4,20 @@ import org.springframework.http.HttpStatus;
 
 import ec.edu.ups.academic_events_api.core.exceptions.base.ApplicationException;
 
-public class NotFoundException extends ApplicationException {
+public class ConflictException extends ApplicationException {
 
-    public NotFoundException(String message) {
+    public ConflictException(String message) {
         super(
-                HttpStatus.NOT_FOUND,
-                "RESOURCE_NOT_FOUND",
+                HttpStatus.CONFLICT,
+                "RESOURCE_CONFLICT",
                 message);
     }
 
-    public NotFoundException(
+    public ConflictException(
             String errorCode,
             String message) {
         super(
-                HttpStatus.NOT_FOUND,
+                HttpStatus.CONFLICT,
                 errorCode,
                 message);
     }
