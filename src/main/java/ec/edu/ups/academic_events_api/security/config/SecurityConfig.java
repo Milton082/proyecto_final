@@ -18,12 +18,18 @@ public class SecurityConfig {
 
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
-                                                                "/actuator/health",
-                                                                "/status",
-                                                                "/swagger-ui/**",
-                                                                "/v3/api-docs/**",
-                                                                "/users/**",
-                                                                "/roles/**")
+                                                              "/error",
+                                "/actuator/health",
+                                "/status",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/users/**",
+                                "/roles/**",
+                                "/events/**",
+                                "/categories/**",
+                                "/sessions/**",
+                                "/registrations/**",
+                                "/reports/**")
                                                 .permitAll()
 
                                                 .anyRequest().authenticated())

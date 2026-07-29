@@ -1,12 +1,19 @@
 package ec.edu.ups.academic_events_api.reports.services;
 
+import ec.edu.ups.academic_events_api.events.entities.EventEntity;
 import ec.edu.ups.academic_events_api.events.repositories.EventRepository;
+import ec.edu.ups.academic_events_api.registrations.entities.RegistrationEntity;
 import ec.edu.ups.academic_events_api.registrations.repositories.RegistrationRepository;
 import ec.edu.ups.academic_events_api.reports.dtos.StatisticsResponseDto;
+import ec.edu.ups.academic_events_api.reports.utils.PdfGenerator;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,13 +26,17 @@ public class ReportServiceImpl implements ReportService {
 
     private final EventRepository eventRepository;
     private final RegistrationRepository registrationRepository;
+    private final PdfGenerator pdfGenerator;
 
     public ReportServiceImpl(
             EventRepository eventRepository,
-            RegistrationRepository registrationRepository
+            RegistrationRepository registrationRepository,
+            PdfGenerator pdfGenerator
     ) {
         this.eventRepository = eventRepository;
-        this.registrationRepository = registrationRepository;
+        this.registrationRepository =
+                registrationRepository;
+        this.pdfGenerator = pdfGenerator;
     }
 
     @Override
@@ -53,6 +64,30 @@ public class ReportServiceImpl implements ReportService {
         }
 
         return response;
+    }
+
+    @Override
+    public byte[] generateRegistrationsPdf(
+            Long eventId
+    ) {
+        EventEntity event = eventRepository
+                .findByIdAndDeletedFalse(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró el evento con id "
+                                + eventId
+                ));
+
+        List<RegistrationEntity> registrations =
+                registrationRepository
+                        .findByEventIdOrderByRegisteredAtAsc(
+                                eventId
+                        );
+
+        return pdfGenerator.generateRegistrationsReport(
+                event,
+                registrations
+        );
     }
 
     private void loadGeneralStatistics(
@@ -143,7 +178,8 @@ public class ReportServiceImpl implements ReportService {
     ) {
         boolean onlyOneDateProvided =
                 (startDate == null && endDate != null)
-                        || (startDate != null && endDate == null);
+                        || (startDate != null
+                        && endDate == null);
 
         if (onlyOneDateProvided) {
             throw new IllegalArgumentException(

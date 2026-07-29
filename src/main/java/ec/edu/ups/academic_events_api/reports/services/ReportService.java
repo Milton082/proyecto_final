@@ -9,4 +9,6 @@ public interface ReportService {
             OffsetDateTime startDate,
             OffsetDateTime endDate
     );
+
+    byte[] generateRegistrationsPdf(Long eventId);
 }

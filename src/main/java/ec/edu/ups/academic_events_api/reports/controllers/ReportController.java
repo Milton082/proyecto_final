@@ -2,14 +2,20 @@ package ec.edu.ups.academic_events_api.reports.controllers;
 
 import ec.edu.ups.academic_events_api.reports.dtos.StatisticsResponseDto;
 import ec.edu.ups.academic_events_api.reports.services.ReportService;
+
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/reports")
@@ -24,8 +30,7 @@ public class ReportController {
     }
 
     @GetMapping("/statistics")
-    public ResponseEntity<StatisticsResponseDto>
-    statistics(
+    public ResponseEntity<StatisticsResponseDto> statistics(
             @RequestParam(required = false)
             @DateTimeFormat(
                     iso = DateTimeFormat.ISO.DATE_TIME
@@ -38,12 +43,45 @@ public class ReportController {
             )
             OffsetDateTime endDate
     ) {
-        StatisticsResponseDto response =
+        return ResponseEntity.ok(
                 reportService.getStatistics(
                         startDate,
                         endDate
+                )
+        );
+    }
+
+    @GetMapping(
+            value = "/events/{eventId}/registrations/pdf",
+            produces = MediaType.APPLICATION_PDF_VALUE
+    )
+    public ResponseEntity<byte[]> downloadRegistrationsPdf(
+            @PathVariable Long eventId
+    ) {
+        byte[] pdf =
+                reportService.generateRegistrationsPdf(
+                        eventId
                 );
 
-        return ResponseEntity.ok(response);
+        String fileName =
+                "inscritos-evento-" + eventId + ".pdf";
+
+        ContentDisposition contentDisposition =
+                ContentDisposition
+                        .attachment()
+                        .filename(
+                                fileName,
+                                StandardCharsets.UTF_8
+                        )
+                        .build();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        contentDisposition.toString()
+                )
+                .contentLength(pdf.length)
+                .body(pdf);
     }
 }

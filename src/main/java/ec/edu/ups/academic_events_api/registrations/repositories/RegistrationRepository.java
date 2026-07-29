@@ -1,6 +1,7 @@
 package ec.edu.ups.academic_events_api.registrations.repositories;
 
 import ec.edu.ups.academic_events_api.registrations.entities.RegistrationEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,5 +32,17 @@ public interface RegistrationRepository extends JpaRepository<RegistrationEntity
             String status,
             OffsetDateTime startDate,
             OffsetDateTime endDate
+    );
+
+    /*
+     * Carga las inscripciones junto con sus participantes.
+     * Evita problemas con FetchType.LAZY al generar el PDF.
+     */
+    @EntityGraph(attributePaths = {
+            "participant",
+            "event"
+    })
+    List<RegistrationEntity> findByEventIdOrderByRegisteredAtAsc(
+            Long eventId
     );
 }
