@@ -13,123 +13,132 @@ import ec.edu.ups.academic_events_api.core.audit.entities.AuditLogEntity;
 import ec.edu.ups.academic_events_api.core.audit.enums.AuditAction;
 import ec.edu.ups.academic_events_api.core.audit.enums.AuditResult;
 import ec.edu.ups.academic_events_api.core.audit.repositories.AuditLogRepository;
+import ec.edu.ups.academic_events_api.security.filters.CorrelationIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class AuditServiceImpl implements AuditService {
 
-    private static final String CORRELATION_HEADER = "X-Correlation-ID";
+        private static final String CORRELATION_HEADER = "X-Correlation-ID";
 
-    private final AuditLogRepository auditLogRepository;
-    private final JsonMapper jsonMapper;
+        private final AuditLogRepository auditLogRepository;
+        private final JsonMapper jsonMapper;
 
-    public AuditServiceImpl(
-            AuditLogRepository auditLogRepository,
-            JsonMapper jsonMapper) {
-        this.auditLogRepository = auditLogRepository;
-        this.jsonMapper = jsonMapper;
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void register(
-            Long actorId,
-            AuditAction action,
-            String resourceType,
-            Long resourceId,
-            Object previousValue,
-            Object newValue,
-            AuditResult result) {
-        RequestInformation requestInformation = obtainRequestInformation();
-
-        AuditLogEntity entity = new AuditLogEntity();
-
-        entity.setActorId(actorId);
-        entity.setAction(action.name());
-        entity.setResourceType(resourceType);
-        entity.setResourceId(resourceId);
-        entity.setPreviousValue(toJsonMap(previousValue));
-        entity.setNewValue(toJsonMap(newValue));
-        entity.setResult(result);
-        entity.setIpAddress(
-                requestInformation.ipAddress());
-        entity.setHttpMethod(
-                requestInformation.httpMethod());
-        entity.setEndpoint(
-                requestInformation.endpoint());
-        entity.setCorrelationId(
-                requestInformation.correlationId());
-
-        auditLogRepository.save(entity);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> toJsonMap(
-            Object value) {
-        if (value == null) {
-            return null;
+        public AuditServiceImpl(
+                        AuditLogRepository auditLogRepository,
+                        JsonMapper jsonMapper) {
+                this.auditLogRepository = auditLogRepository;
+                this.jsonMapper = jsonMapper;
         }
 
-        return jsonMapper.convertValue(
-                value,
-                Map.class);
-    }
+        @Override
+        @Transactional(propagation = Propagation.REQUIRES_NEW)
+        public void register(
+                        Long actorId,
+                        AuditAction action,
+                        String resourceType,
+                        Long resourceId,
+                        Object previousValue,
+                        Object newValue,
+                        AuditResult result) {
+                RequestInformation requestInformation = obtainRequestInformation();
 
-    private RequestInformation obtainRequestInformation() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
-                .getRequestAttributes();
+                AuditLogEntity entity = new AuditLogEntity();
 
-        if (attributes == null) {
-            return new RequestInformation(
-                    null,
-                    null,
-                    null,
-                    UUID.randomUUID().toString());
+                entity.setActorId(actorId);
+                entity.setAction(action.name());
+                entity.setResourceType(resourceType);
+                entity.setResourceId(resourceId);
+                entity.setPreviousValue(toJsonMap(previousValue));
+                entity.setNewValue(toJsonMap(newValue));
+                entity.setResult(result);
+                entity.setIpAddress(
+                                requestInformation.ipAddress());
+                entity.setHttpMethod(
+                                requestInformation.httpMethod());
+                entity.setEndpoint(
+                                requestInformation.endpoint());
+                entity.setCorrelationId(
+                                requestInformation.correlationId());
+
+                auditLogRepository.save(entity);
         }
 
-        HttpServletRequest request = attributes.getRequest();
+        @SuppressWarnings("unchecked")
+        private Map<String, Object> toJsonMap(
+                        Object value) {
+                if (value == null) {
+                        return null;
+                }
 
-        return new RequestInformation(
-                extractClientIp(request),
-                request.getMethod(),
-                request.getRequestURI(),
-                extractCorrelationId(request));
-    }
-
-    private String extractClientIp(
-            HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-
-        if (forwardedFor != null
-                && !forwardedFor.isBlank()) {
-
-            return forwardedFor
-                    .split(",")[0]
-                    .trim();
+                return jsonMapper.convertValue(
+                                value,
+                                Map.class);
         }
 
-        return request.getRemoteAddr();
-    }
+        private RequestInformation obtainRequestInformation() {
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                                .getRequestAttributes();
 
-    private String extractCorrelationId(
-            HttpServletRequest request) {
-        String correlationId = request.getHeader(CORRELATION_HEADER);
+                if (attributes == null) {
+                        return new RequestInformation(
+                                        null,
+                                        null,
+                                        null,
+                                        UUID.randomUUID().toString());
+                }
 
-        if (correlationId == null
-                || correlationId.isBlank()
-                || correlationId.length() > 36) {
+                HttpServletRequest request = attributes.getRequest();
 
-            return UUID.randomUUID().toString();
+                return new RequestInformation(
+                                extractClientIp(request),
+                                request.getMethod(),
+                                request.getRequestURI(),
+                                extractCorrelationId(request));
         }
 
-        return correlationId.trim();
-    }
+        private String extractClientIp(
+                        HttpServletRequest request) {
+                String forwardedFor = request.getHeader("X-Forwarded-For");
 
-    private record RequestInformation(
-            String ipAddress,
-            String httpMethod,
-            String endpoint,
-            String correlationId) {
-    }
+                if (forwardedFor != null
+                                && !forwardedFor.isBlank()) {
+
+                        return forwardedFor
+                                        .split(",")[0]
+                                        .trim();
+                }
+
+                return request.getRemoteAddr();
+        }
+
+        private String extractCorrelationId(
+                        HttpServletRequest request) {
+                Object correlationId = request.getAttribute(
+                                CorrelationIdFilter.HEADER_NAME);
+
+                if (correlationId instanceof String value
+                                && !value.isBlank()) {
+                        return value;
+                }
+
+                String header = request.getHeader(
+                                CorrelationIdFilter.HEADER_NAME);
+
+                if (header != null
+                                && !header.isBlank()
+                                && header.length() <= 36) {
+                        return header.trim();
+                }
+
+                return UUID.randomUUID().toString();
+        }
+
+        private record RequestInformation(
+                        String ipAddress,
+                        String httpMethod,
+                        String endpoint,
+                        String correlationId) {
+        }
 }

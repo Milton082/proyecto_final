@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import ec.edu.ups.academic_events_api.core.exceptions.base.ApplicationException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.RateLimitException;
@@ -327,6 +328,22 @@ public class GlobalExceptionHandler {
 
                 return ResponseEntity
                                 .status(HttpStatus.TOO_MANY_REQUESTS)
+                                .body(errorResponse);
+        }
+
+        @ExceptionHandler(NoResourceFoundException.class)
+        public ResponseEntity<ErrorResponse> handleNoResourceFound(
+                        NoResourceFoundException exception,
+                        HttpServletRequest request) {
+                ErrorResponse errorResponse = buildResponse(
+                                HttpStatus.NOT_FOUND,
+                                "ENDPOINT_NOT_FOUND",
+                                "El recurso solicitado no existe",
+                                request.getRequestURI(),
+                                null);
+
+                return ResponseEntity
+                                .status(HttpStatus.NOT_FOUND)
                                 .body(errorResponse);
         }
 }

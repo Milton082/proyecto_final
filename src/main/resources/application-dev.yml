@@ -7,18 +7,18 @@ spring:
 
     hikari:
       maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
-    open-in-view: false
-
     hibernate:
       ddl-auto: validate
 
     properties:
       hibernate:
         format_sql: true
-        jdbc:
-          time_zone: UTC
 
   data:
     redis:
@@ -27,14 +27,65 @@ spring:
       password: ${REDIS_PASSWORD:}
       timeout: 2s
 
-app:
-  cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+jwt:
+  secret: ${JWT_SECRET:development-secret-key-for-academic-events-api-2026-minimum-32-characters}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 security:
   login:
-    rate-limit-max-requests: 10
-    rate-limit-window-seconds: 60
-    max-failed-attempts: 5
-    failed-attempt-window-seconds: 900
-    block-duration-seconds: 900
+    rate-limit-max-requests: ${LOGIN_RATE_LIMIT_MAX:10}
+    rate-limit-window-seconds: ${LOGIN_RATE_LIMIT_WINDOW:60}
+    max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
+    failed-attempt-window-seconds: ${LOGIN_FAILED_WINDOW:900}
+    block-duration-seconds: ${LOGIN_BLOCK_DURATION:900}
+
+  cors:
+    allowed-origins:
+      - ${FRONTEND_URL_1:http://localhost:3000}
+      - ${FRONTEND_URL_2:http://localhost:4200}
+      - ${FRONTEND_URL_3:http://localhost:5173}
+
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+
+    allowed-headers:
+      - Authorization
+      - Content-Type
+      - Accept
+      - X-Correlation-ID
+
+    exposed-headers:
+      - X-Correlation-ID
+
+    allow-credentials: true
+    max-age: 3600
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    ec.edu.ups.academic_events_api: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
