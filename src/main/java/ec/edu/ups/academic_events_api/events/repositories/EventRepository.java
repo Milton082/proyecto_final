@@ -6,9 +6,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<EventEntity, Long> {
+
     Optional<EventEntity> findByIdAndDeletedFalse(Long id);
     List<EventEntity> findByDeletedFalse();
-    List<EventEntity> findByCategoryIdAndDeletedFalse(Long categoryId);
-    List<EventEntity> findByOrganizerIdAndDeletedFalse(Long organizerId);
-    boolean existsByTitleIgnoreCaseAndDeletedFalse(String title);
+    List<EventEntity> findByCategoryIdAndDeletedFalse(
+            Long categoryId
+    );
+    List<EventEntity> findByOrganizerIdAndDeletedFalse(
+            Long organizerId
+    );
+    boolean existsByTitleIgnoreCaseAndDeletedFalse(
+            String title
+    );
+    long countByDeletedFalse();
 }
