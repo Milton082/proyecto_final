@@ -1,6 +1,7 @@
 package ec.edu.ups.academic_events_api.users.services;
 
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -12,6 +13,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ec.edu.ups.academic_events_api.core.audit.enums.AuditAction;
+import ec.edu.ups.academic_events_api.core.audit.enums.AuditResult;
+import ec.edu.ups.academic_events_api.core.audit.services.AuditService;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.BadRequestException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.NotFoundException;
 import ec.edu.ups.academic_events_api.security.services.UserDetailsImpl;
@@ -33,14 +37,17 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final AuditService auditService;
 
     public UserServiceImpl(
             UserRepository userRepository,
             RoleRepository roleRepository,
-            UserMapper userMapper) {
+            UserMapper userMapper,
+            AuditService auditService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.userMapper = userMapper;
+        this.auditService = auditService;
     }
 
     @Override
@@ -81,9 +88,24 @@ public class UserServiceImpl implements UserService {
                     "No puede bloquear su propia cuenta");
         }
 
+        UserStatus previousStatus = user.getStatus();
+
         user.setStatus(dto.status());
 
         UserEntity updatedUser = userRepository.save(user);
+
+        auditService.register(
+                getAuthenticatedUserId(),
+                AuditAction.USER_STATUS_UPDATED,
+                "USER",
+                updatedUser.getId(),
+                Map.of(
+                        "status",
+                        previousStatus.name()),
+                Map.of(
+                        "status",
+                        updatedUser.getStatus().name()),
+                AuditResult.SUCCESS);
 
         return userMapper.toResponse(updatedUser);
     }
@@ -112,6 +134,13 @@ public class UserServiceImpl implements UserService {
                     "No puede retirar su propio rol de administrador");
         }
 
+        Set<RoleName> previousRoles = user.getRoles()
+                .stream()
+                .map(RoleEntity::getName)
+                .sorted()
+                .collect(Collectors.toCollection(
+                        LinkedHashSet::new));
+
         Set<RoleEntity> roles = dto.roles()
                 .stream()
                 .sorted()
@@ -123,6 +152,26 @@ public class UserServiceImpl implements UserService {
 
         UserEntity updatedUser = userRepository.save(user);
 
+        Set<RoleName> newRoles = updatedUser.getRoles()
+                .stream()
+                .map(RoleEntity::getName)
+                .sorted()
+                .collect(Collectors.toCollection(
+                        LinkedHashSet::new));
+
+        auditService.register(
+                getAuthenticatedUserId(),
+                AuditAction.USER_ROLES_UPDATED,
+                "USER",
+                updatedUser.getId(),
+                Map.of(
+                        "roles",
+                        previousRoles),
+                Map.of(
+                        "roles",
+                        newRoles),
+                AuditResult.SUCCESS);
+
         return userMapper.toResponse(updatedUser);
     }
 
@@ -132,9 +181,24 @@ public class UserServiceImpl implements UserService {
                         "No existe un usuario con id " + id));
     }
 
-    private RoleEntity findRoleByName(RoleName roleName) {
+    private RoleEntity findRoleByName(
+            RoleName roleName) {
         return roleRepository.findByName(roleName)
                 .orElseThrow(() -> new NotFoundException(
                         "No existe el rol " + roleName));
+    }
+
+    private Long getAuthenticatedUserId() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication != null
+                && authentication.getPrincipal() instanceof UserDetailsImpl principal) {
+
+            return principal.getId();
+        }
+
+        return null;
     }
 }

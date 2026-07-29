@@ -2,6 +2,7 @@ package ec.edu.ups.academic_events_api.security.services;
 
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -14,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.AuthenticationException;
 
+import ec.edu.ups.academic_events_api.core.audit.enums.AuditAction;
+import ec.edu.ups.academic_events_api.core.audit.enums.AuditResult;
+import ec.edu.ups.academic_events_api.core.audit.services.AuditService;
 import ec.edu.ups.academic_events_api.core.dtos.MessageResponseDto;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.ConflictException;
 import ec.edu.ups.academic_events_api.core.exceptions.domain.NotFoundException;
@@ -46,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
         private final JwtProperties jwtProperties;
         private final RefreshTokenService refreshTokenService;
         private final LoginProtectionService loginProtectionService;
+        private final AuditService auditService;
 
         public AuthServiceImpl(
                         UserRepository userRepository,
@@ -55,7 +60,8 @@ public class AuthServiceImpl implements AuthService {
                         JwtUtil jwtUtil,
                         JwtProperties jwtProperties,
                         RefreshTokenService refreshTokenService,
-                        LoginProtectionService loginProtectionService) {
+                        LoginProtectionService loginProtectionService,
+                        AuditService auditService) {
                 this.userRepository = userRepository;
                 this.roleRepository = roleRepository;
                 this.passwordEncoder = passwordEncoder;
@@ -64,6 +70,7 @@ public class AuthServiceImpl implements AuthService {
                 this.jwtProperties = jwtProperties;
                 this.refreshTokenService = refreshTokenService;
                 this.loginProtectionService = loginProtectionService;
+                this.auditService = auditService;
         }
 
         @Override
@@ -96,6 +103,17 @@ public class AuthServiceImpl implements AuthService {
                                 new HashSet<>(Set.of(participantRole)));
 
                 UserEntity savedUser = userRepository.save(user);
+                auditService.register(
+                                null,
+                                AuditAction.ACCOUNT_REGISTERED,
+                                "USER",
+                                savedUser.getId(),
+                                null,
+                                Map.of(
+                                                "email", savedUser.getEmail(),
+                                                "status", savedUser.getStatus().name(),
+                                                "roles", Set.of(RoleName.PARTICIPANT)),
+                                AuditResult.SUCCESS);
 
                 return new RegisterResponseDto(
                                 savedUser.getId(),
@@ -128,6 +146,17 @@ public class AuthServiceImpl implements AuthService {
                                                         dto.password()));
 
                 } catch (AuthenticationException exception) {
+
+                        auditService.register(
+                                        null,
+                                        AuditAction.LOGIN_FAILED,
+                                        "USER",
+                                        null,
+                                        null,
+                                        Map.of(
+                                                        "email",
+                                                        normalizedEmail),
+                                        AuditResult.FAILED);
 
                         loginProtectionService.registerFailure(
                                         normalizedEmail,
@@ -162,6 +191,17 @@ public class AuthServiceImpl implements AuthService {
                                 .map(RoleName::valueOf)
                                 .collect(Collectors.toCollection(
                                                 LinkedHashSet::new));
+
+                auditService.register(
+                                principal.getId(),
+                                AuditAction.LOGIN_SUCCESS,
+                                "USER",
+                                principal.getId(),
+                                null,
+                                Map.of(
+                                                "email", principal.getUsername(),
+                                                "roles", roles),
+                                AuditResult.SUCCESS);
 
                 return new AuthResponseDto(
                                 accessToken,
@@ -199,6 +239,14 @@ public class AuthServiceImpl implements AuthService {
                                 .collect(Collectors.toCollection(
                                                 LinkedHashSet::new));
 
+                auditService.register(
+                                user.getId(),
+                                AuditAction.REFRESH_TOKEN_SUCCESS,
+                                "USER",
+                                user.getId(),
+                                null,
+                                Map.of("email", user.getEmail()),
+                                AuditResult.SUCCESS);
                 return new AuthResponseDto(
                                 newAccessToken,
                                 newRefreshToken,
@@ -214,8 +262,19 @@ public class AuthServiceImpl implements AuthService {
         @Transactional
         public MessageResponseDto logout(
                         LogoutRequestDto dto) {
+                Long actorId = getAuthenticatedUserId();
+
                 refreshTokenService.revoke(
                                 dto.refreshToken());
+
+                auditService.register(
+                                actorId,
+                                AuditAction.LOGOUT_SUCCESS,
+                                "USER",
+                                actorId,
+                                null,
+                                Map.of("sessionClosed", true),
+                                AuditResult.SUCCESS);
 
                 return new MessageResponseDto(
                                 "Sesión cerrada correctamente");
@@ -254,5 +313,19 @@ public class AuthServiceImpl implements AuthService {
                                 user.getEmail(),
                                 user.getStatus(),
                                 roles);
+        }
+
+        private Long getAuthenticatedUserId() {
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
+
+                if (authentication != null
+                                && authentication.getPrincipal() instanceof UserDetailsImpl principal) {
+
+                        return principal.getId();
+                }
+
+                return null;
         }
 }
