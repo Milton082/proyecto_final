@@ -11,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import ec.edu.ups.academic_events_api.security.filters.JwtAccessDeniedHandler;
 import ec.edu.ups.academic_events_api.security.filters.JwtAuthenticationEntryPoint;
 import ec.edu.ups.academic_events_api.security.filters.JwtAuthenticationFilter;
@@ -20,73 +19,97 @@ import ec.edu.ups.academic_events_api.security.filters.JwtAuthenticationFilter;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        private final JwtAuthenticationEntryPoint authenticationEntryPoint;
-        private final JwtAccessDeniedHandler accessDeniedHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint authenticationEntryPoint;
+    private final JwtAccessDeniedHandler accessDeniedHandler;
 
-        public SecurityConfig(
-                        JwtAuthenticationFilter jwtAuthenticationFilter,
-                        JwtAuthenticationEntryPoint authenticationEntryPoint,
-                        JwtAccessDeniedHandler accessDeniedHandler) {
-                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-                this.authenticationEntryPoint = authenticationEntryPoint;
-                this.accessDeniedHandler = accessDeniedHandler;
-        }
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            JwtAuthenticationEntryPoint authenticationEntryPoint,
+            JwtAccessDeniedHandler accessDeniedHandler
+    ) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-        @Bean
-        public AuthenticationManager authenticationManager(
-                        AuthenticationConfiguration configuration) throws Exception {
-                return configuration.getAuthenticationManager();
-        }
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(
-                        HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
-                return http
-                                .csrf(csrf -> csrf.disable())
+        return http
+                .csrf(csrf -> csrf.disable())
 
-                                .cors(cors -> {
-                                })
+                .cors(cors -> {
+                })
 
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(
-                                                                SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
 
-                                .exceptionHandling(exceptions -> exceptions
-                                                .authenticationEntryPoint(
-                                                                authenticationEntryPoint)
-                                                .accessDeniedHandler(
-                                                                accessDeniedHandler))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint
+                        )
+                        .accessDeniedHandler(
+                                accessDeniedHandler
+                        )
+                )
 
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/auth/**",
-                                                                "/actuator/health",
-                                                                "/status",
-                                                                "/swagger-ui/**",
-                                                                "/v3/api-docs/**")
-                                                .permitAll()
+                .authorizeHttpRequests(auth -> auth
 
-                                                .requestMatchers(
-                                                                "/users/**",
-                                                                "/roles/**")
-                                                .hasRole("ADMIN")
+                        .requestMatchers(
+                                "/error",
+                                "/auth/**",
+                                "/actuator/health",
+                                "/status",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        )
+                        .permitAll()
 
-                                                .anyRequest().authenticated())
+                        .requestMatchers(
+                                "/users/**",
+                                "/roles/**"
+                        )
+                        .hasRole("ADMIN")
 
-                                .formLogin(form -> form.disable())
-                                .httpBasic(basic -> basic.disable())
+                        .requestMatchers(
+                                "/events/**",
+                                "/categories/**",
+                                "/sessions/**",
+                                "/registrations/**",
+                                "/reports/**"
+                        )
+                        .authenticated()
 
-                                .addFilterBefore(
-                                                jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
+                        .anyRequest()
+                        .authenticated()
+                )
 
-                                .build();
-        }
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
+                .build();
+    }
 }

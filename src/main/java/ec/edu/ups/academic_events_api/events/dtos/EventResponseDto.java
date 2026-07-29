@@ -11,6 +11,7 @@ public class EventResponseDto {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Integer capacity;
+    private Integer availableCapacity;
     private String status;
     private Long categoryId;
     private String categoryName;
@@ -75,6 +76,14 @@ public class EventResponseDto {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
+    }
+
+    public Integer getAvailableCapacity() {
+        return availableCapacity;
+    }
+
+    public void setAvailableCapacity(Integer availableCapacity) {
+        this.availableCapacity = availableCapacity;
     }
 
     public String getStatus() {

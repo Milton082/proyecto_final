@@ -1,10 +1,15 @@
 package ec.edu.ups.academic_events_api.events.entities;
 
+import java.time.LocalDateTime;
 import ec.edu.ups.academic_events_api.categories.entities.CategoryEntity;
 import ec.edu.ups.academic_events_api.core.entities.BaseEntity;
 import ec.edu.ups.academic_events_api.users.entities.UserEntity;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "events")
@@ -28,6 +33,9 @@ public class EventEntity extends BaseEntity {
     @Column(nullable = false)
     private Integer capacity;
 
+    @Column(name = "available_capacity", nullable = false)
+    private Integer availableCapacity;
+
     @Column(nullable = false, length = 30)
     private String status;
 
@@ -39,7 +47,6 @@ public class EventEntity extends BaseEntity {
     @JoinColumn(name = "organizer_id", nullable = false)
     private UserEntity organizer;
 
-
     public String getTitle() {
         return title;
     }
@@ -47,7 +54,6 @@ public class EventEntity extends BaseEntity {
     public void setTitle(String title) {
         this.title = title;
     }
-
 
     public String getDescription() {
         return description;
@@ -57,7 +63,6 @@ public class EventEntity extends BaseEntity {
         this.description = description;
     }
 
-
     public String getLocation() {
         return location;
     }
@@ -65,7 +70,6 @@ public class EventEntity extends BaseEntity {
     public void setLocation(String location) {
         this.location = location;
     }
-
 
     public LocalDateTime getStartDate() {
         return startDate;
@@ -75,7 +79,6 @@ public class EventEntity extends BaseEntity {
         this.startDate = startDate;
     }
 
-
     public LocalDateTime getEndDate() {
         return endDate;
     }
@@ -83,7 +86,6 @@ public class EventEntity extends BaseEntity {
     public void setEndDate(LocalDateTime endDate) {
         this.endDate = endDate;
     }
-
 
     public Integer getCapacity() {
         return capacity;
@@ -93,6 +95,13 @@ public class EventEntity extends BaseEntity {
         this.capacity = capacity;
     }
 
+    public Integer getAvailableCapacity() {
+        return availableCapacity;
+    }
+
+    public void setAvailableCapacity(Integer availableCapacity) {
+        this.availableCapacity = availableCapacity;
+    }
 
     public String getStatus() {
         return status;
@@ -102,7 +111,6 @@ public class EventEntity extends BaseEntity {
         this.status = status;
     }
 
-
     public CategoryEntity getCategory() {
         return category;
     }
@@ -110,7 +118,6 @@ public class EventEntity extends BaseEntity {
     public void setCategory(CategoryEntity category) {
         this.category = category;
     }
-
 
     public UserEntity getOrganizer() {
         return organizer;
