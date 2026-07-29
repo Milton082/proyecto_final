@@ -11,4 +11,5 @@ public interface ReportService {
     );
 
     byte[] generateRegistrationsPdf(Long eventId);
+    byte[] generateRegistrationsExcel(Long eventId);
 }

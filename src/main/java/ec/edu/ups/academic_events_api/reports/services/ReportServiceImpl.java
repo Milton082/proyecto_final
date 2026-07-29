@@ -6,12 +6,11 @@ import ec.edu.ups.academic_events_api.registrations.entities.RegistrationEntity;
 import ec.edu.ups.academic_events_api.registrations.repositories.RegistrationRepository;
 import ec.edu.ups.academic_events_api.reports.dtos.StatisticsResponseDto;
 import ec.edu.ups.academic_events_api.reports.utils.PdfGenerator;
-
+import ec.edu.ups.academic_events_api.reports.utils.ExcelGenerator;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -27,31 +26,29 @@ public class ReportServiceImpl implements ReportService {
     private final EventRepository eventRepository;
     private final RegistrationRepository registrationRepository;
     private final PdfGenerator pdfGenerator;
+    private final ExcelGenerator excelGenerator;
 
     public ReportServiceImpl(
             EventRepository eventRepository,
             RegistrationRepository registrationRepository,
-            PdfGenerator pdfGenerator
-    ) {
+            PdfGenerator pdfGenerator,
+            ExcelGenerator excelGenerator) {
         this.eventRepository = eventRepository;
-        this.registrationRepository =
-                registrationRepository;
+        this.registrationRepository = registrationRepository;
         this.pdfGenerator = pdfGenerator;
+        this.excelGenerator = excelGenerator;
     }
 
     @Override
     public StatisticsResponseDto getStatistics(
             OffsetDateTime startDate,
-            OffsetDateTime endDate
-    ) {
+            OffsetDateTime endDate) {
         validateDateRange(startDate, endDate);
 
-        StatisticsResponseDto response =
-                new StatisticsResponseDto();
+        StatisticsResponseDto response = new StatisticsResponseDto();
 
         response.setTotalEvents(
-                eventRepository.countByDeletedFalse()
-        );
+                eventRepository.countByDeletedFalse());
 
         if (startDate == null) {
             loadGeneralStatistics(response);
@@ -59,8 +56,7 @@ public class ReportServiceImpl implements ReportService {
             loadStatisticsByDateRange(
                     response,
                     startDate,
-                    endDate
-            );
+                    endDate);
         }
 
         return response;
@@ -68,131 +64,120 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public byte[] generateRegistrationsPdf(
-            Long eventId
-    ) {
+            Long eventId) {
         EventEntity event = eventRepository
                 .findByIdAndDeletedFalse(eventId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "No se encontró el evento con id "
-                                + eventId
-                ));
+                                + eventId));
 
-        List<RegistrationEntity> registrations =
-                registrationRepository
-                        .findByEventIdOrderByRegisteredAtAsc(
-                                eventId
-                        );
+        List<RegistrationEntity> registrations = registrationRepository
+                .findByEventIdOrderByRegisteredAtAsc(
+                        eventId);
 
         return pdfGenerator.generateRegistrationsReport(
                 event,
-                registrations
-        );
+                registrations);
     }
 
     private void loadGeneralStatistics(
-            StatisticsResponseDto response
-    ) {
+            StatisticsResponseDto response) {
         response.setTotalRegistrations(
-                registrationRepository.count()
-        );
+                registrationRepository.count());
 
         response.setConfirmedRegistrations(
                 registrationRepository.countByStatus(
-                        STATUS_CONFIRMED
-                )
-        );
+                        STATUS_CONFIRMED));
 
         response.setPendingRegistrations(
                 registrationRepository.countByStatus(
-                        STATUS_PENDING
-                )
-        );
+                        STATUS_PENDING));
 
         response.setCancelledRegistrations(
                 registrationRepository.countByStatus(
-                        STATUS_CANCELLED
-                )
-        );
+                        STATUS_CANCELLED));
 
         response.setRejectedRegistrations(
                 registrationRepository.countByStatus(
-                        STATUS_REJECTED
-                )
-        );
+                        STATUS_REJECTED));
+    }
+
+    @Override
+    public byte[] generateRegistrationsExcel(
+            Long eventId) {
+        EventEntity event = eventRepository
+                .findByIdAndDeletedFalse(eventId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No se encontró el evento con id "
+                                + eventId));
+
+        List<RegistrationEntity> registrations = registrationRepository
+                .findByEventIdOrderByRegisteredAtAsc(
+                        eventId);
+
+        return excelGenerator.generateRegistrationsReport(
+                event,
+                registrations);
     }
 
     private void loadStatisticsByDateRange(
             StatisticsResponseDto response,
             OffsetDateTime startDate,
-            OffsetDateTime endDate
-    ) {
+            OffsetDateTime endDate) {
         response.setTotalRegistrations(
                 registrationRepository
                         .countByRegisteredAtBetween(
                                 startDate,
-                                endDate
-                        )
-        );
+                                endDate));
 
         response.setConfirmedRegistrations(
                 registrationRepository
                         .countByStatusAndRegisteredAtBetween(
                                 STATUS_CONFIRMED,
                                 startDate,
-                                endDate
-                        )
-        );
+                                endDate));
 
         response.setPendingRegistrations(
                 registrationRepository
                         .countByStatusAndRegisteredAtBetween(
                                 STATUS_PENDING,
                                 startDate,
-                                endDate
-                        )
-        );
+                                endDate));
 
         response.setCancelledRegistrations(
                 registrationRepository
                         .countByStatusAndRegisteredAtBetween(
                                 STATUS_CANCELLED,
                                 startDate,
-                                endDate
-                        )
-        );
+                                endDate));
 
         response.setRejectedRegistrations(
                 registrationRepository
                         .countByStatusAndRegisteredAtBetween(
                                 STATUS_REJECTED,
                                 startDate,
-                                endDate
-                        )
-        );
+                                endDate));
     }
 
     private void validateDateRange(
             OffsetDateTime startDate,
-            OffsetDateTime endDate
-    ) {
-        boolean onlyOneDateProvided =
-                (startDate == null && endDate != null)
-                        || (startDate != null
+            OffsetDateTime endDate) {
+        boolean onlyOneDateProvided = (startDate == null && endDate != null)
+                || (startDate != null
                         && endDate == null);
 
         if (onlyOneDateProvided) {
             throw new IllegalArgumentException(
-                    "Debe proporcionar startDate y endDate juntos"
-            );
+                    "Debe proporcionar startDate y endDate juntos");
         }
 
         if (startDate != null
                 && startDate.isAfter(endDate)) {
 
             throw new IllegalArgumentException(
-                    "startDate no puede ser posterior a endDate"
-            );
+                    "startDate no puede ser posterior a endDate");
         }
     }
 }

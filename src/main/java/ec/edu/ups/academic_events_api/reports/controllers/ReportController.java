@@ -84,4 +84,45 @@ public class ReportController {
                 .contentLength(pdf.length)
                 .body(pdf);
     }
+
+    private static final MediaType EXCEL_MEDIA_TYPE =
+        MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument."
+                        + "spreadsheetml.sheet"
+        );
+
+    @GetMapping(
+        value = "/events/{eventId}/registrations/excel",
+        produces = "application/vnd.openxmlformats-officedocument."
+                + "spreadsheetml.sheet"
+)
+public ResponseEntity<byte[]> downloadRegistrationsExcel(
+        @PathVariable Long eventId
+) {
+    byte[] excel =
+            reportService.generateRegistrationsExcel(
+                    eventId
+            );
+
+    String fileName =
+            "inscritos-evento-" + eventId + ".xlsx";
+
+    ContentDisposition contentDisposition =
+            ContentDisposition
+                    .attachment()
+                    .filename(
+                            fileName,
+                            StandardCharsets.UTF_8
+                    )
+                    .build();
+
+    return ResponseEntity.ok()
+            .contentType(EXCEL_MEDIA_TYPE)
+            .header(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    contentDisposition.toString()
+            )
+            .contentLength(excel.length)
+            .body(excel);
+    }
 }
