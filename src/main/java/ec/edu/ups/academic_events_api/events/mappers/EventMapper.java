@@ -12,12 +12,14 @@ public final class EventMapper {
 
     public static EventEntity toEntity(CreateEventDto dto) {
         EventEntity entity = new EventEntity();
+
         entity.setTitle(dto.getTitle().trim());
         entity.setDescription(normalizeText(dto.getDescription()));
         entity.setLocation(dto.getLocation().trim());
         entity.setStartDate(dto.getStartDate());
         entity.setEndDate(dto.getEndDate());
         entity.setCapacity(dto.getCapacity());
+        entity.setAvailableCapacity(dto.getCapacity());
         entity.setStatus(dto.getStatus().trim().toUpperCase());
 
         return entity;
@@ -32,12 +34,14 @@ public final class EventMapper {
         entity.setLocation(dto.getLocation().trim());
         entity.setStartDate(dto.getStartDate());
         entity.setEndDate(dto.getEndDate());
-        entity.setCapacity(dto.getCapacity());
         entity.setStatus(dto.getStatus().trim().toUpperCase());
     }
 
-    public static EventResponseDto toResponseDto(EventEntity entity) {
+    public static EventResponseDto toResponseDto(
+            EventEntity entity
+    ) {
         EventResponseDto dto = new EventResponseDto();
+
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
         dto.setDescription(entity.getDescription());
@@ -45,6 +49,7 @@ public final class EventMapper {
         dto.setStartDate(entity.getStartDate());
         dto.setEndDate(entity.getEndDate());
         dto.setCapacity(entity.getCapacity());
+        dto.setAvailableCapacity(entity.getAvailableCapacity());
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
@@ -65,6 +70,7 @@ public final class EventMapper {
         if (value == null || value.isBlank()) {
             return null;
         }
+
         return value.trim();
     }
 }
