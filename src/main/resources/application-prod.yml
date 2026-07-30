@@ -7,9 +7,9 @@ spring:
     name: academic-events-api
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
     hikari:
@@ -21,13 +21,10 @@ spring:
 
   jpa:
     open-in-view: false
-
     hibernate:
       ddl-auto: update
-
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
         jdbc:
           time_zone: UTC
@@ -37,57 +34,9 @@ jwt:
   access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-security:
-  login:
-    rate-limit:
-      max-requests: ${LOGIN_RATE_LIMIT_MAX:10}
-      window-seconds: ${LOGIN_RATE_LIMIT_WINDOW:60}
-
-    max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
-    failed-attempt-window-seconds: ${LOGIN_FAILED_WINDOW:900}
-    block-duration-seconds: ${LOGIN_BLOCK_DURATION:900}
-
-  rate-limit:
-    public:
-      max-requests: ${PUBLIC_RATE_LIMIT_MAX:60}
-      window-seconds: ${PUBLIC_RATE_LIMIT_WINDOW:60}
-
-    authenticated:
-      max-requests: ${AUTH_RATE_LIMIT_MAX:120}
-      window-seconds: ${AUTH_RATE_LIMIT_WINDOW:60}
-
-    reports:
-      max-requests: ${REPORT_RATE_LIMIT_MAX:5}
-      window-seconds: ${REPORT_RATE_LIMIT_WINDOW:60}
-
-  cors:
-    allowed-origins:
-      - ${FRONTEND_URL:http://localhost:5173}
-
-    allowed-methods:
-      - GET
-      - POST
-      - PUT
-      - PATCH
-      - DELETE
-      - OPTIONS
-
-    allowed-headers:
-      - Authorization
-      - Content-Type
-      - Accept
-      - X-Correlation-ID
-
-    exposed-headers:
-      - X-Correlation-ID
-
-    allow-credentials: true
-    max-age: 3600
-
 springdoc:
   api-docs:
     enabled: false
-
   swagger-ui:
     enabled: false
 
