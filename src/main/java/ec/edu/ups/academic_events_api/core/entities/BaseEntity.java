@@ -33,8 +33,11 @@ public abstract class BaseEntity {
 
     @PrePersist
     protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+
         this.deleted = false;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     @PreUpdate
@@ -42,12 +45,8 @@ public abstract class BaseEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Constructor vacío
     public BaseEntity() {
     }
-
-    // Getters y setters
-    // Getters y setters
 
     public Long getId() {
         return id;

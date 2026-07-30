@@ -15,37 +15,94 @@ import jakarta.persistence.Table;
 @Table(name = "events")
 public class EventEntity extends BaseEntity {
 
-    @Column(nullable = false, length = 150)
+    @Column(
+            nullable = false,
+            length = 150
+    )
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(
+            nullable = false,
+            columnDefinition = "TEXT"
+    )
     private String description;
 
-    @Column(nullable = false, length = 200)
+    @Column(
+            nullable = false,
+            length = 20
+    )
+    private String modality;
+
+    @Column(length = 200)
     private String location;
 
-    @Column(name = "start_at", nullable = false)
+    @Column(
+            name = "virtual_url",
+            length = 500
+    )
+    private String virtualUrl;
+
+    @Column(
+            name = "registration_start_at",
+            nullable = false
+    )
+    private LocalDateTime registrationStartDate;
+
+    @Column(
+            name = "registration_end_at",
+            nullable = false
+    )
+    private LocalDateTime registrationEndDate;
+
+    @Column(
+            name = "start_at",
+            nullable = false
+    )
     private LocalDateTime startDate;
 
-    @Column(name = "end_at", nullable = false)
+    @Column(
+            name = "end_at",
+            nullable = false
+    )
     private LocalDateTime endDate;
 
     @Column(nullable = false)
     private Integer capacity;
 
-    @Column(name = "available_capacity", nullable = false)
+    @Column(
+            name = "available_capacity",
+            nullable = false
+    )
     private Integer availableCapacity;
 
-    @Column(nullable = false, length = 30)
+    @Column(
+            nullable = false,
+            length = 30
+    )
     private String status;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "category_id",
+            nullable = false
+    )
     private CategoryEntity category;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organizer_id", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "organizer_id",
+            nullable = false
+    )
     private UserEntity organizer;
+
+    public EventEntity() {
+    }
 
     public String getTitle() {
         return title;
@@ -63,12 +120,48 @@ public class EventEntity extends BaseEntity {
         this.description = description;
     }
 
+    public String getModality() {
+        return modality;
+    }
+
+    public void setModality(String modality) {
+        this.modality = modality;
+    }
+
     public String getLocation() {
         return location;
     }
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getVirtualUrl() {
+        return virtualUrl;
+    }
+
+    public void setVirtualUrl(String virtualUrl) {
+        this.virtualUrl = virtualUrl;
+    }
+
+    public LocalDateTime getRegistrationStartDate() {
+        return registrationStartDate;
+    }
+
+    public void setRegistrationStartDate(
+            LocalDateTime registrationStartDate
+    ) {
+        this.registrationStartDate = registrationStartDate;
+    }
+
+    public LocalDateTime getRegistrationEndDate() {
+        return registrationEndDate;
+    }
+
+    public void setRegistrationEndDate(
+            LocalDateTime registrationEndDate
+    ) {
+        this.registrationEndDate = registrationEndDate;
     }
 
     public LocalDateTime getStartDate() {

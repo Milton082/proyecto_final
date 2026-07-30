@@ -7,7 +7,11 @@ public class EventResponseDto {
     private Long id;
     private String title;
     private String description;
+    private String modality;
     private String location;
+    private String virtualUrl;
+    private LocalDateTime registrationStartDate;
+    private LocalDateTime registrationEndDate;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Integer capacity;
@@ -46,12 +50,48 @@ public class EventResponseDto {
         this.description = description;
     }
 
+    public String getModality() {
+        return modality;
+    }
+
+    public void setModality(String modality) {
+        this.modality = modality;
+    }
+
     public String getLocation() {
         return location;
     }
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getVirtualUrl() {
+        return virtualUrl;
+    }
+
+    public void setVirtualUrl(String virtualUrl) {
+        this.virtualUrl = virtualUrl;
+    }
+
+    public LocalDateTime getRegistrationStartDate() {
+        return registrationStartDate;
+    }
+
+    public void setRegistrationStartDate(
+            LocalDateTime registrationStartDate
+    ) {
+        this.registrationStartDate = registrationStartDate;
+    }
+
+    public LocalDateTime getRegistrationEndDate() {
+        return registrationEndDate;
+    }
+
+    public void setRegistrationEndDate(
+            LocalDateTime registrationEndDate
+    ) {
+        this.registrationEndDate = registrationEndDate;
     }
 
     public LocalDateTime getStartDate() {

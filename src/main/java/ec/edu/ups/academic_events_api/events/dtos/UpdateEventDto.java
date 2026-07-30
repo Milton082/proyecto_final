@@ -1,39 +1,73 @@
 package ec.edu.ups.academic_events_api.events.dtos;
 
+import java.time.LocalDateTime;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
 
 public class UpdateEventDto {
 
     @NotBlank(message = "El título es obligatorio")
-    @Size(max = 150, message = "El título no puede superar los 150 caracteres")
+    @Size(
+            max = 150,
+            message = "El título no puede superar los 150 caracteres"
+    )
     private String title;
 
-    @Size(max = 2000, message = "La descripción no puede superar los 2000 caracteres")
+    @NotBlank(message = "La descripción es obligatoria")
+    @Size(
+            max = 2000,
+            message = "La descripción no puede superar los 2000 caracteres"
+    )
     private String description;
 
-    @NotBlank(message = "La ubicación es obligatoria")
-    @Size(max = 200, message = "La ubicación no puede superar los 200 caracteres")
+    @NotBlank(message = "La modalidad es obligatoria")
+    @Size(
+            max = 20,
+            message = "La modalidad no puede superar los 20 caracteres"
+    )
+    private String modality;
+
+    @Size(
+            max = 200,
+            message = "La ubicación no puede superar los 200 caracteres"
+    )
     private String location;
 
-    @NotNull(message = "La fecha de inicio es obligatoria")
-    @Future(message = "La fecha de inicio debe ser futura")
+    @Size(
+            max = 500,
+            message = "La URL virtual no puede superar los 500 caracteres"
+    )
+    private String virtualUrl;
+
+    @NotNull(message = "La fecha de inicio de inscripciones es obligatoria")
+    private LocalDateTime registrationStartDate;
+
+    @NotNull(message = "La fecha de cierre de inscripciones es obligatoria")
+    private LocalDateTime registrationEndDate;
+
+    @NotNull(message = "La fecha de inicio del evento es obligatoria")
+    @Future(message = "La fecha de inicio del evento debe ser futura")
     private LocalDateTime startDate;
 
-    @NotNull(message = "La fecha de finalización es obligatoria")
-    @Future(message = "La fecha de finalización debe ser futura")
+    @NotNull(message = "La fecha de finalización del evento es obligatoria")
+    @Future(message = "La fecha de finalización del evento debe ser futura")
     private LocalDateTime endDate;
 
     @NotNull(message = "La capacidad es obligatoria")
-    @Min(value = 1, message = "La capacidad debe ser mayor que cero")
+    @Min(
+            value = 1,
+            message = "La capacidad debe ser mayor que cero"
+    )
     private Integer capacity;
 
     @NotBlank(message = "El estado es obligatorio")
-    @Size(max = 30, message = "El estado no puede superar los 30 caracteres")
+    @Size(
+            max = 30,
+            message = "El estado no puede superar los 30 caracteres"
+    )
     private String status;
 
     @NotNull(message = "La categoría es obligatoria")
@@ -61,12 +95,48 @@ public class UpdateEventDto {
         this.description = description;
     }
 
+    public String getModality() {
+        return modality;
+    }
+
+    public void setModality(String modality) {
+        this.modality = modality;
+    }
+
     public String getLocation() {
         return location;
     }
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getVirtualUrl() {
+        return virtualUrl;
+    }
+
+    public void setVirtualUrl(String virtualUrl) {
+        this.virtualUrl = virtualUrl;
+    }
+
+    public LocalDateTime getRegistrationStartDate() {
+        return registrationStartDate;
+    }
+
+    public void setRegistrationStartDate(
+            LocalDateTime registrationStartDate
+    ) {
+        this.registrationStartDate = registrationStartDate;
+    }
+
+    public LocalDateTime getRegistrationEndDate() {
+        return registrationEndDate;
+    }
+
+    public void setRegistrationEndDate(
+            LocalDateTime registrationEndDate
+    ) {
+        this.registrationEndDate = registrationEndDate;
     }
 
     public LocalDateTime getStartDate() {
