@@ -1,32 +1,64 @@
+server:
+  port: ${PORT:8080}
+  address: 0.0.0.0
+
 spring:
+  application:
+    name: academic-events-api
+
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
     hikari:
       maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     open-in-view: false
-
     hibernate:
-      ddl-auto: validate
-
+      ddl-auto: update
     properties:
       hibernate:
+        format_sql: false
         jdbc:
           time_zone: UTC
 
-  data:
-    redis:
-      url: ${REDIS_URL}
-
-app:
-  cors:
-    allowed-origins: ${ALLOWED_ORIGINS}
-
 jwt:
   secret: ${JWT_SECRET}
-  access-expiration: ${JWT_ACCESS_EXPIRATION}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+
+  health:
+    redis:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    ec.edu.ups.academic_events_api: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: OFF

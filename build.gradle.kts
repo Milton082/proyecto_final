@@ -35,6 +35,7 @@ dependencies {
 
     implementation("org.apache.poi:poi-ooxml:5.4.1")
     implementation("com.github.librepdf:openpdf:2.0.3")
+    
 
     runtimeOnly("org.postgresql:postgresql")
 
@@ -45,4 +46,7 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-parameters")
 }
