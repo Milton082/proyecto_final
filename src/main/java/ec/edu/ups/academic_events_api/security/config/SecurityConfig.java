@@ -1,18 +1,20 @@
 package ec.edu.ups.academic_events_api.security.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -28,196 +30,257 @@ import ec.edu.ups.academic_events_api.security.filters.JwtAuthenticationFilter;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        private final JwtAuthenticationEntryPoint authenticationEntryPoint;
-        private final JwtAccessDeniedHandler accessDeniedHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint authenticationEntryPoint;
+    private final JwtAccessDeniedHandler accessDeniedHandler;
 
-        public SecurityConfig(
-                        JwtAuthenticationFilter jwtAuthenticationFilter,
-                        JwtAuthenticationEntryPoint authenticationEntryPoint,
-                        JwtAccessDeniedHandler accessDeniedHandler) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            JwtAuthenticationEntryPoint authenticationEntryPoint,
+            JwtAccessDeniedHandler accessDeniedHandler
+    ) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
 
-                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-                this.authenticationEntryPoint = authenticationEntryPoint;
-                this.accessDeniedHandler = accessDeniedHandler;
-        }
+    /*
+     * Codificador usado tanto por los usuarios reales de la API
+     * como por el usuario exclusivo de Swagger.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-        /*
-         * Codificador utilizado tanto por los usuarios de la API
-         * como por el usuario de Swagger.
-         */
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    /*
+     * Proveedor de autenticación para los usuarios almacenados
+     * en PostgreSQL.
+     */
+    @Bean
+    public DaoAuthenticationProvider apiAuthenticationProvider(
+            @Qualifier("userDetailsServiceImpl")
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder
+    ) {
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(userDetailsService);
 
-        /*
-         * AuthenticationManager utilizado por /auth/login.
-         */
-        @Bean
-        public AuthenticationManager authenticationManager(
-                        AuthenticationConfiguration configuration)
-                        throws Exception {
+        provider.setPasswordEncoder(passwordEncoder);
 
-                return configuration.getAuthenticationManager();
-        }
+        return provider;
+    }
 
-        /*
-         * Usuario exclusivo para entrar a Swagger.
-         *
-         * Usuario: swagger
-         * Contraseña: Swagger123!
-         */
-        @Bean
-        public InMemoryUserDetailsManager swaggerUserDetailsService(
-                        PasswordEncoder passwordEncoder) {
+    /*
+     * AuthenticationManager principal utilizado por /auth/login.
+     *
+     * Se marca como @Primary porque también existe un manager
+     * independiente para Swagger.
+     */
+    @Bean
+    @Primary
+    public AuthenticationManager authenticationManager(
+            @Qualifier("apiAuthenticationProvider")
+            DaoAuthenticationProvider apiAuthenticationProvider
+    ) {
+        return new ProviderManager(apiAuthenticationProvider);
+    }
 
-                UserDetails swaggerUser = User.builder()
-                                .username("swagger")
-                                .password(passwordEncoder.encode("Swagger123!"))
-                                .roles("SWAGGER")
-                                .build();
+    /*
+     * Usuario exclusivo para acceder a Swagger.
+     *
+     * Usuario: swagger
+     * Contraseña: Swagger123!
+     */
+    @Bean
+    public InMemoryUserDetailsManager swaggerUserDetailsService(
+            PasswordEncoder passwordEncoder
+    ) {
+        UserDetails swaggerUser = User.builder()
+                .username("swagger")
+                .password(
+                        passwordEncoder.encode("Swagger123!")
+                )
+                .roles("SWAGGER")
+                .build();
 
-                return new InMemoryUserDetailsManager(swaggerUser);
-        }
+        return new InMemoryUserDetailsManager(swaggerUser);
+    }
 
-        /*
-         * Proveedor que valida únicamente al usuario de Swagger.
-         */
-        @Bean
-        public DaoAuthenticationProvider swaggerAuthenticationProvider(
-                        InMemoryUserDetailsManager swaggerUserDetailsService,
-                        PasswordEncoder passwordEncoder) {
+    /*
+     * Proveedor exclusivo para Swagger.
+     *
+     * Este proveedor no se usa en /auth/login.
+     */
+    @Bean
+    public DaoAuthenticationProvider swaggerAuthenticationProvider(
+            @Qualifier("swaggerUserDetailsService")
+            InMemoryUserDetailsManager swaggerUserDetailsService,
+            PasswordEncoder passwordEncoder
+    ) {
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(
+                        swaggerUserDetailsService
+                );
 
-                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(
-                                swaggerUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
 
-                provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
 
-                return provider;
-        }
+    /*
+     * AuthenticationManager exclusivo para Swagger.
+     */
+    @Bean
+    public AuthenticationManager swaggerAuthenticationManager(
+            @Qualifier("swaggerAuthenticationProvider")
+            DaoAuthenticationProvider swaggerAuthenticationProvider
+    ) {
+        return new ProviderManager(
+                swaggerAuthenticationProvider
+        );
+    }
 
-        /*
-         * AuthenticationManager exclusivo para Swagger.
-         */
-        @Bean
-        public AuthenticationManager swaggerAuthenticationManager(
-                        DaoAuthenticationProvider swaggerAuthenticationProvider) {
+    /*
+     * Primera cadena de seguridad.
+     *
+     * Protege Swagger mediante HTTP Basic.
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain swaggerSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("swaggerAuthenticationManager")
+            AuthenticationManager swaggerAuthenticationManager
+    ) throws Exception {
 
-                return new ProviderManager(
-                                swaggerAuthenticationProvider);
-        }
+        return http
+                .securityMatcher(
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**"
+                )
 
-        /*
-         * Primera cadena:
-         * protege Swagger mediante HTTP Basic.
-         */
-        @Bean
-        @Order(1)
-        public SecurityFilterChain swaggerSecurityFilterChain(
-                        HttpSecurity http,
-                        AuthenticationManager swaggerAuthenticationManager)
-                        throws Exception {
+                .authenticationManager(
+                        swaggerAuthenticationManager
+                )
 
-                return http
-                                .securityMatcher(
-                                                "/swagger-ui/**",
-                                                "/swagger-ui.html",
-                                                "/v3/api-docs/**")
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest()
+                        .hasRole("SWAGGER")
+                )
 
-                                .authenticationManager(
-                                                swaggerAuthenticationManager)
+                .httpBasic(Customizer.withDefaults())
 
-                                .authorizeHttpRequests(auth -> auth
-                                                .anyRequest()
-                                                .hasRole("SWAGGER"))
+                .csrf(csrf -> csrf.disable())
 
-                                .httpBasic(Customizer.withDefaults())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.IF_REQUIRED
+                        )
+                )
 
-                                .csrf(csrf -> csrf.disable())
+                .build();
+    }
 
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(
-                                                                SessionCreationPolicy.IF_REQUIRED))
+    /*
+     * Segunda cadena de seguridad.
+     *
+     * Protege el resto de la API mediante JWT.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain apiSecurityFilterChain(
+            HttpSecurity http,
+            @Qualifier("authenticationManager")
+            AuthenticationManager authenticationManager
+    ) throws Exception {
 
-                                .build();
-        }
+        return http
+                .authenticationManager(authenticationManager)
 
-        /*
-         * Segunda cadena:
-         * protege el resto de la API mediante JWT.
-         */
-        @Bean
-        @Order(2)
-        public SecurityFilterChain apiSecurityFilterChain(
-                        HttpSecurity http)
-                        throws Exception {
+                .csrf(csrf -> csrf.disable())
 
-                return http
-                                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
 
-                                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
 
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(
-                                                                SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        .contentTypeOptions(
+                                Customizer.withDefaults()
+                        )
 
-                                .headers(headers -> headers
-                                                .contentTypeOptions(
-                                                                Customizer.withDefaults())
+                        .frameOptions(frame -> frame.deny())
 
-                                                .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(referrer -> referrer
+                                .policy(
+                                        ReferrerPolicyHeaderWriter
+                                                .ReferrerPolicy
+                                                .STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+                                )
+                        )
 
-                                                .referrerPolicy(referrer -> referrer
-                                                                .policy(
-                                                                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicyHeader(permissions -> permissions
+                                .policy(
+                                        "camera=(), microphone=(), "
+                                                + "geolocation=(), payment=()"
+                                )
+                        )
+                )
 
-                                                .permissionsPolicyHeader(permissions -> permissions
-                                                                .policy(
-                                                                                "camera=(), microphone=(), "
-                                                                                                + "geolocation=(), payment=()")))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint
+                        )
+                        .accessDeniedHandler(
+                                accessDeniedHandler
+                        )
+                )
 
-                                .exceptionHandling(exceptions -> exceptions
-                                                .authenticationEntryPoint(
-                                                                authenticationEntryPoint)
-                                                .accessDeniedHandler(
-                                                                accessDeniedHandler))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/error",
+                                "/auth/register",
+                                "/auth/login",
+                                "/auth/refresh",
+                                "/auth/logout",
+                                "/actuator/health",
+                                "/status"
+                        )
+                        .permitAll()
 
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/error",
-                                                                "/auth/register",
-                                                                "/auth/login",
-                                                                "/auth/refresh",
-                                                                "/auth/logout",
-                                                                "/actuator/health",
-                                                                "/status")
-                                                .permitAll()
+                        .requestMatchers(
+                                "/users/**",
+                                "/roles/**"
+                        )
+                        .hasRole("ADMIN")
 
-                                                .requestMatchers(
-                                                                "/users/**",
-                                                                "/roles/**")
-                                                .hasRole("ADMIN")
+                        .requestMatchers(
+                                "/events/**",
+                                "/categories/**",
+                                "/sessions/**",
+                                "/registrations/**",
+                                "/reports/**"
+                        )
+                        .authenticated()
 
-                                                .requestMatchers(
-                                                                "/events/**",
-                                                                "/categories/**",
-                                                                "/sessions/**",
-                                                                "/registrations/**",
-                                                                "/reports/**")
-                                                .authenticated()
+                        .anyRequest()
+                        .authenticated()
+                )
 
-                                                .anyRequest()
-                                                .authenticated())
+                .formLogin(form -> form.disable())
 
-                                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
 
-                                .httpBasic(basic -> basic.disable())
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
 
-                                .addFilterBefore(
-                                                jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
-
-                                .build();
-        }
+                .build();
+    }
 }

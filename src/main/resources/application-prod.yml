@@ -36,9 +36,15 @@ jwt:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    path: /v3/api-docs
+
   swagger-ui:
-    enabled: false
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
 
 management:
   endpoints:
