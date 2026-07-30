@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/academic_events_db}
+    username: ${DB_USERNAME:ups}
+    password: ${DB_PASSWORD:ups123}
     driver-class-name: org.postgresql.Driver
 
     hikari:
@@ -13,22 +13,24 @@ spring:
       max-lifetime: ${DB_MAX_LIFETIME:1800000}
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
-
     properties:
       hibernate:
         format_sql: false
+        jdbc:
+          time_zone: UTC
 
   data:
     redis:
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: ${REDIS_TIMEOUT:2s}
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:academic-events-local-prod-secret-key-2026-minimum-32-characters}
   access-expiration: ${JWT_ACCESS_EXPIRATION:900000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
@@ -36,6 +38,18 @@ security:
   login:
     rate-limit-max-requests: ${LOGIN_RATE_LIMIT_MAX:10}
     rate-limit-window-seconds: ${LOGIN_RATE_LIMIT_WINDOW:60}
+    rate-limit:
+    public:
+      max-requests: ${PUBLIC_RATE_LIMIT_MAX:60}
+      window-seconds: ${PUBLIC_RATE_LIMIT_WINDOW:60}
+
+    authenticated:
+      max-requests: ${AUTH_RATE_LIMIT_MAX:120}
+      window-seconds: ${AUTH_RATE_LIMIT_WINDOW:60}
+
+    reports:
+      max-requests: ${REPORT_RATE_LIMIT_MAX:5}
+      window-seconds: ${REPORT_RATE_LIMIT_WINDOW:60}
     max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
     failed-attempt-window-seconds: ${LOGIN_FAILED_WINDOW:900}
     block-duration-seconds: ${LOGIN_BLOCK_DURATION:900}
@@ -81,6 +95,7 @@ management:
   endpoint:
     health:
       show-details: never
+      show-components: never
 
 logging:
   level:

@@ -13,7 +13,7 @@ public class RateLimitException extends ApplicationException {
             long retryAfterSeconds) {
         super(
                 HttpStatus.TOO_MANY_REQUESTS,
-                "RATE_LIMIT_EXCEEDED",
+                "Limite de solicitudes excedido",
                 message);
 
         this.retryAfterSeconds = retryAfterSeconds;
