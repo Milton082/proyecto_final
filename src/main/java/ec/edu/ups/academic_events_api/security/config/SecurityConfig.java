@@ -1,18 +1,20 @@
 package ec.edu.ups.academic_events_api.security.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -36,15 +38,14 @@ public class SecurityConfig {
                         JwtAuthenticationFilter jwtAuthenticationFilter,
                         JwtAuthenticationEntryPoint authenticationEntryPoint,
                         JwtAccessDeniedHandler accessDeniedHandler) {
-
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
                 this.authenticationEntryPoint = authenticationEntryPoint;
                 this.accessDeniedHandler = accessDeniedHandler;
         }
 
         /*
-         * Codificador utilizado tanto por los usuarios de la API
-         * como por el usuario de Swagger.
+         * Codificador usado tanto por los usuarios reales de la API
+         * como por el usuario exclusivo de Swagger.
          */
         @Bean
         public PasswordEncoder passwordEncoder() {
@@ -52,18 +53,35 @@ public class SecurityConfig {
         }
 
         /*
-         * AuthenticationManager utilizado por /auth/login.
+         * Proveedor de autenticación para los usuarios almacenados
+         * en PostgreSQL.
          */
         @Bean
-        public AuthenticationManager authenticationManager(
-                        AuthenticationConfiguration configuration)
-                        throws Exception {
+        public DaoAuthenticationProvider apiAuthenticationProvider(
+                        @Qualifier("userDetailsServiceImpl") UserDetailsService userDetailsService,
+                        PasswordEncoder passwordEncoder) {
+                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 
-                return configuration.getAuthenticationManager();
+                provider.setPasswordEncoder(passwordEncoder);
+
+                return provider;
         }
 
         /*
-         * Usuario exclusivo para entrar a Swagger.
+         * AuthenticationManager principal utilizado por /auth/login.
+         *
+         * Se marca como @Primary porque también existe un manager
+         * independiente para Swagger.
+         */
+        @Bean
+        @Primary
+        public AuthenticationManager authenticationManager(
+                        @Qualifier("apiAuthenticationProvider") DaoAuthenticationProvider apiAuthenticationProvider) {
+                return new ProviderManager(apiAuthenticationProvider);
+        }
+
+        /*
+         * Usuario exclusivo para acceder a Swagger.
          *
          * Usuario: swagger
          * Contraseña: Swagger123!
@@ -71,10 +89,10 @@ public class SecurityConfig {
         @Bean
         public InMemoryUserDetailsManager swaggerUserDetailsService(
                         PasswordEncoder passwordEncoder) {
-
                 UserDetails swaggerUser = User.builder()
                                 .username("swagger")
-                                .password(passwordEncoder.encode("Swagger123!"))
+                                .password(
+                                                passwordEncoder.encode("Swagger123!"))
                                 .roles("SWAGGER")
                                 .build();
 
@@ -82,13 +100,14 @@ public class SecurityConfig {
         }
 
         /*
-         * Proveedor que valida únicamente al usuario de Swagger.
+         * Proveedor exclusivo para Swagger.
+         *
+         * Este proveedor no se usa en /auth/login.
          */
         @Bean
         public DaoAuthenticationProvider swaggerAuthenticationProvider(
-                        InMemoryUserDetailsManager swaggerUserDetailsService,
+                        @Qualifier("swaggerUserDetailsService") InMemoryUserDetailsManager swaggerUserDetailsService,
                         PasswordEncoder passwordEncoder) {
-
                 DaoAuthenticationProvider provider = new DaoAuthenticationProvider(
                                 swaggerUserDetailsService);
 
@@ -102,21 +121,21 @@ public class SecurityConfig {
          */
         @Bean
         public AuthenticationManager swaggerAuthenticationManager(
-                        DaoAuthenticationProvider swaggerAuthenticationProvider) {
-
+                        @Qualifier("swaggerAuthenticationProvider") DaoAuthenticationProvider swaggerAuthenticationProvider) {
                 return new ProviderManager(
                                 swaggerAuthenticationProvider);
         }
 
         /*
-         * Primera cadena:
-         * protege Swagger mediante HTTP Basic.
+         * Primera cadena de seguridad.
+         *
+         * Protege Swagger mediante HTTP Basic.
          */
         @Bean
         @Order(1)
         public SecurityFilterChain swaggerSecurityFilterChain(
                         HttpSecurity http,
-                        AuthenticationManager swaggerAuthenticationManager)
+                        @Qualifier("swaggerAuthenticationManager") AuthenticationManager swaggerAuthenticationManager)
                         throws Exception {
 
                 return http
@@ -144,16 +163,20 @@ public class SecurityConfig {
         }
 
         /*
-         * Segunda cadena:
-         * protege el resto de la API mediante JWT.
+         * Segunda cadena de seguridad.
+         *
+         * Protege el resto de la API mediante JWT.
          */
         @Bean
         @Order(2)
         public SecurityFilterChain apiSecurityFilterChain(
-                        HttpSecurity http)
+                        HttpSecurity http,
+                        @Qualifier("authenticationManager") AuthenticationManager authenticationManager)
                         throws Exception {
 
                 return http
+                                .authenticationManager(authenticationManager)
+
                                 .csrf(csrf -> csrf.disable())
 
                                 .cors(Customizer.withDefaults())
