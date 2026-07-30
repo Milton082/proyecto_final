@@ -24,7 +24,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-      timeout: 2s
+      timeout: 10s
+      connect-timeout: 10s
 
   jpa:
     open-in-view: false
